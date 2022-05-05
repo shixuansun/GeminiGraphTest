@@ -164,12 +164,13 @@ public:
     assert( numa_available() != -1 );
     assert( sizeof(unsigned long) == 8 ); // assume unsigned long is 64-bit
 
-    char nodestring[sockets*2+1];
+    char nodestring[sockets*2];
     nodestring[0] = '0';
     for (int s_i=1;s_i<sockets;s_i++) {
       nodestring[s_i*2-1] = ',';
       nodestring[s_i*2] = '0'+s_i;
     }
+    nodestring[sockets*2 - 1] = 0;
     struct bitmask * nodemask = numa_parse_nodestring(nodestring);
     numa_set_interleave_mask(nodemask);
 
@@ -238,7 +239,7 @@ public:
 
   // deallocate a vertex array
   template<typename T>
-  T * dealloc_vertex_array(T * array) {
+  void dealloc_vertex_array(T * array) {
     numa_free(array, sizeof(T) * vertices);
   }
 
@@ -380,6 +381,8 @@ public:
     }
     assert(lseek(fin, read_offset, SEEK_SET)==read_offset);
     read_bytes = 0;
+
+    int tmp_degree = 0;
     while (read_bytes < bytes_to_read) {
       long curr_read_bytes;
       if (bytes_to_read - read_bytes > edge_unit_size * CHUNKSIZE) {
@@ -396,10 +399,17 @@ public:
         VertexId dst = read_edge_buffer[e_i].dst;
         __sync_fetch_and_add(&out_degree[src], 1);
         __sync_fetch_and_add(&out_degree[dst], 1);
+
+        if (src == 0 || dst == 0)
+            tmp_degree += 1;
       }
     }
+      printf("tmp_degree: %d\n", tmp_degree);
+      printf("out_degree: %d\n", out_degree[0]);
+
     MPI_Allreduce(MPI_IN_PLACE, out_degree, vertices, vid_t, MPI_SUM, MPI_COMM_WORLD);
 
+      printf("out_degree: %d\n", out_degree[0]);
     // locality-aware chunking
     partition_offset = new VertexId [partitions + 1];
     partition_offset[0] = 0;

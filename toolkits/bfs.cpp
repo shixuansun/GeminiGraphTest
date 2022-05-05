@@ -102,10 +102,10 @@ void compute(Graph<Empty> * graph, VertexId root) {
     printf("found_vertices = %u\n", found_vertices);
   }
 
-  graph->dealloc_vertex_array(parent);
-  delete active_in;
-  delete active_out;
-  delete visited;
+  // graph->dealloc_vertex_array(parent);
+  // delete active_in;
+  // delete active_out;
+  // delete visited;
 }
 
 int main(int argc, char ** argv) {
@@ -119,8 +119,17 @@ int main(int argc, char ** argv) {
   Graph<Empty> * graph;
   graph = new Graph<Empty>();
   VertexId root = std::atoi(argv[3]);
-  graph->load_directed(argv[1], std::atoi(argv[2]));
 
+  // graph->load_directed(argv[1], std::atoi(argv[2]));
+
+  auto start = std::chrono::high_resolution_clock::now();
+  graph->load_undirected_from_directed(argv[1], std::atoi(argv[2]));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  double load_graphs_time_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    printf("Load graph time: %.3f seconds\n", load_graphs_time_in_ns/1000000000);
+  printf("%u, %zu\n", graph->vertices, graph->edges);
+    printf("%d\n", graph->out_degree[0]);
   compute(graph, root);
   for (int run=0;run<5;run++) {
     compute(graph, root);
